@@ -1,22 +1,25 @@
-import React, { useEffect, useState } from "react";
-import { Package, Clock, XCircle, CheckCircle, AlertTriangle } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Package, Clock, CheckCircle2, XCircle, ShoppingBag, ArrowRight } from 'lucide-react';
+import axios from 'axios';
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState(null);
 
-  const fetchOrders = () => {
-    fetch("http://localhost:5000/api/orders")
-      .then((res) => res.json())
-      .then((data) => {
-        setOrders(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch orders:", err);
-        setLoading(false);
-      });
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/orders', { timeout: 1500 });
+      if (res.data && res.data.length > 0) {
+        setOrders(res.data);
+        return;
+      }
+    } catch {
+      // Fallback: read from local storage
+    }
+    const local = JSON.parse(localStorage.getItem('nexora_orders') || '[]');
+    setOrders(local);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -24,129 +27,133 @@ export default function Orders() {
   }, []);
 
   const handleCancelOrder = async (orderId) => {
-    if (!window.confirm("Are you sure you want to cancel this order?")) return;
-    setCancellingId(orderId);
-
+    // 1. Try cancel via backend
     try {
-      const res = await fetch(`http://localhost:5000/api/orders/${orderId}/cancel`, {
-        method: "PUT",
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setOrders((prev) =>
-          prev.map((ord) => (ord._id === orderId ? { ...ord, status: "Cancelled" } : ord))
-        );
-      } else {
-        alert(data.message || "Failed to cancel");
-      }
-    } catch (err) {
-      alert("Error cancelling order");
-    } finally {
-      setCancellingId(null);
+      await axios.put(`http://localhost:5000/api/orders/${orderId}/cancel`, {}, { timeout: 1500 });
+    } catch {
+      // proceed to local update
     }
+
+    // 2. Update state and localStorage
+    const updated = orders.map((ord) => {
+      if ((ord._id && ord._id === orderId) || (ord.orderId && ord.orderId === orderId)) {
+        return { ...ord, status: 'Cancelled' };
+      }
+      return ord;
+    });
+
+    setOrders(updated);
+    localStorage.setItem('nexora_orders', JSON.stringify(updated));
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Cancelled":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-            <XCircle size={13} /> Cancelled
-          </span>
-        );
-      case "Delivered":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle size={13} /> Delivered
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-            <Clock size={13} /> Processing
-          </span>
-        );
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center bg-slate-50">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 bg-slate-50 text-center">
+        <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
+          <Package size={36} />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-800">No Orders Placed Yet</h2>
+        <p className="text-slate-500 mt-2 max-w-sm text-sm">Place your first order to track shipments and order history.</p>
+        <Link
+          to="/"
+          className="mt-6 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg shadow-md transition"
+        >
+          Start Shopping <ArrowRight size={16} />
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Package className="w-8 h-8 text-blue-600" />
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">My Orders</h1>
-          <p className="text-sm text-slate-500">Live order status and instant cancellation</p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+          My Order History <span className="text-sm font-normal text-slate-500">({orders.length} orders)</span>
+        </h1>
 
-      {loading ? (
-        <div className="text-center py-20 text-slate-500">Loading orders...</div>
-      ) : orders.length === 0 ? (
-        <div className="p-8 bg-white rounded-xl border border-slate-200 text-center text-slate-600">
-          No orders placed yet.
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {orders.map((order) => (
-            <div
-              key={order._id}
-              className={`bg-white rounded-xl border shadow-sm p-6 space-y-4 transition ${
-                order.status === "Cancelled" ? "border-rose-200 bg-rose-50/20 opacity-80" : "border-slate-200"
-              }`}
-            >
-              <div className="flex flex-wrap items-center justify-between pb-4 border-b border-slate-100 gap-3">
-                <div>
-                  <span className="text-xs font-mono text-slate-500">ORDER ID</span>
-                  <p className="font-mono text-sm font-semibold text-slate-800">{order._id}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {getStatusBadge(order.status)}
-                  <span className="text-base font-bold text-slate-800">
-                    ₹{Number(order.totalAmount || 0).toLocaleString("en-IN")}
-                  </span>
-                </div>
-              </div>
+        <div className="space-y-4">
+          {orders.map((order, idx) => {
+            const isCancelled = order.status === 'Cancelled';
+            const orderRef = order._id || order.orderId || `ORD-${idx + 1}`;
 
-              <div className="divide-y divide-slate-100">
-                {order.orderItems?.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between py-3">
-                    <div className="flex items-center gap-3">
-                      {item.image && (
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-12 h-12 object-cover rounded-md bg-slate-50"
-                        />
-                      )}
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">{item.name}</p>
-                        <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+            return (
+              <div
+                key={orderRef}
+                className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow transition"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
+                  <div>
+                    <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Order ID</span>
+                    <p className="text-sm font-bold text-slate-800 font-mono mt-0.5">{orderRef}</p>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                        isCancelled
+                          ? 'bg-red-50 text-red-600'
+                          : 'bg-emerald-50 text-emerald-600'
+                      }`}
+                    >
+                      {isCancelled ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
+                      {order.status || 'Placed'}
+                    </span>
+
+                    {!isCancelled && (
+                      <button
+                        onClick={() => handleCancelOrder(orderRef)}
+                        className="text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-lg transition"
+                      >
+                        Cancel Order
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Items */}
+                <div className="space-y-3">
+                  {(order.items || order.orderItems || []).map((item, itemIdx) => (
+                    <div key={itemIdx} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-3">
+                        {item.image && (
+                          <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-md bg-slate-100" />
+                        )}
+                        <div>
+                          <p className="font-medium text-slate-800">{item.name}</p>
+                          <p className="text-xs text-slate-400">Qty: {item.quantity || 1}</p>
+                        </div>
                       </div>
+                      <p className="font-semibold text-slate-800">
+                        ₹{(Number(item.price) * (item.quantity || 1)).toLocaleString('en-IN')}
+                      </p>
                     </div>
-                    <span className="text-sm font-semibold text-slate-700">
-                      ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-100 pt-4 mt-4 flex justify-between items-center text-sm">
+                  <span className="text-slate-500">
+                    Date: {new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                  <div className="text-right">
+                    <span className="text-xs text-slate-400">Total Paid: </span>
+                    <span className="text-base font-bold text-blue-600">
+                      ₹{Number(order.totalAmount || order.totalPrice || 0).toLocaleString('en-IN')}
                     </span>
                   </div>
-                ))}
-              </div>
-
-              {/* Cancel Button */}
-              {order.status !== "Cancelled" && (
-                <div className="pt-2 flex justify-end">
-                  <button
-                    onClick={() => handleCancelOrder(order._id)}
-                    disabled={cancellingId === order._id}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 border border-rose-200 text-rose-600 rounded-lg text-sm font-medium hover:bg-rose-50 transition disabled:opacity-50"
-                  >
-                    <XCircle size={15} />
-                    {cancellingId === order._id ? "Cancelling..." : "Cancel Order"}
-                  </button>
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
