@@ -4,7 +4,6 @@ import HeroBanner from '../components/HeroBanner';
 import ProductCard from '../components/ProductCard';
 import ProductDetailModal from '../components/ProductDetailModal';
 
-// 12 Premium Fallback Products agar live server offline ho
 const defaultProducts = [
   {
     _id: '1',
@@ -144,11 +143,9 @@ export default function Home() {
   const [products, setProducts] = useState(defaultProducts);
   const [category, setCategory] = useState('All');
   const [sortBy, setSortBy] = useState('featured');
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
-    // Backend se fetch karega, agar offline/remote ho toh default products rahenge
     axios.get('http://localhost:5000/api/products')
       .then((res) => {
         if (res.data && res.data.length > 0) {
@@ -156,7 +153,6 @@ export default function Home() {
         }
       })
       .catch(() => {
-        // Backend offline hone par default products safe rahenge
         setProducts(defaultProducts);
       });
   }, []);
@@ -165,7 +161,6 @@ export default function Home() {
 
   const filteredProducts = products
     .filter((p) => (category === 'All' ? true : p.category.toLowerCase() === category.toLowerCase()))
-    .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price;
       if (sortBy === 'price-high') return b.price - a.price;
@@ -183,6 +178,7 @@ export default function Home() {
             {categories.map((cat) => (
               <button
                 key={cat}
+                type="button"
                 onClick={() => setCategory(cat)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                   category === cat
@@ -210,21 +206,15 @@ export default function Home() {
           </div>
         </div>
 
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl border border-slate-200">
-            <p className="text-slate-500 text-base">No products found in this category.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product._id}
-                product={product}
-                onSelect={(prod) => setSelectedProduct(prod)}
-              />
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredProducts.map((product) => (
+            <ProductCard
+              key={product._id}
+              product={product}
+              onSelect={(p) => setSelectedProduct(p)}
+            />
+          ))}
+        </div>
       </main>
 
       <ProductDetailModal

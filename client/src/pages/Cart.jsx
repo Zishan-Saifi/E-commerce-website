@@ -5,40 +5,42 @@ import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, ShieldCheck } from 'lucid
 import axios from 'axios';
 
 export default function Cart() {
-  const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { cart = [], updateQuantity, removeFromCart, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const subtotal = cartItems.reduce((acc, item) => {
-    const p = typeof item.price === 'number' ? item.price : parseFloat(String(item.price).replace(/[^0-9.-]+/g, '')) || 0;
-    return acc + p * (item.quantity || 1);
+  const subtotal = (cart || []).reduce((acc, item) => {
+    const rawPrice = item?.price;
+    const p = typeof rawPrice === 'number'
+      ? rawPrice
+      : parseFloat(String(rawPrice || 0).replace(/[^0-9.-]+/g, '')) || 0;
+    const q = Number(item?.quantity) || 1;
+    return acc + p * q;
   }, 0);
 
   const gst = Math.round(subtotal * 0.18);
   const total = subtotal + gst;
 
   const handleQuantity = (id, delta, currentQty) => {
-    const newQty = (currentQty || 1) + delta;
+    const newQty = (Number(currentQty) || 1) + delta;
     if (newQty <= 0) {
-      removeFromCart(id);
+      if (removeFromCart) removeFromCart(id);
     } else {
-      if (updateQuantity) {
-        updateQuantity(id, newQty);
-      }
+      if (updateQuantity) updateQuantity(id, newQty);
     }
   };
 
   const handleCheckout = async () => {
-    if (cartItems.length === 0) return;
+    if ((cart || []).length === 0) return;
     setLoading(true);
 
     const orderData = {
       orderId: 'NEX-' + Math.floor(100000 + Math.random() * 900000),
-      items: cartItems.map((item) => ({
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity || 1,
-        image: item.image,
+      items: (cart || []).map((item) => ({
+        name: item.name || 'Product',
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 1,
+        image: item.image || '',
       })),
       totalAmount: total,
       status: 'Placed',
@@ -46,28 +48,26 @@ export default function Cart() {
     };
 
     try {
-      // 1. Try backend
-      await axios.post('http://localhost:5000/api/orders', orderData, { timeout: 2000 });
+      await axios.post('http://localhost:5000/api/orders', orderData, { timeout: 1500 });
     } catch {
-      // 2. Fallback to LocalStorage for live site
       const existing = JSON.parse(localStorage.getItem('nexora_orders') || '[]');
       existing.unshift(orderData);
       localStorage.setItem('nexora_orders', JSON.stringify(existing));
     } finally {
-      clearCart();
+      if (clearCart) clearCart();
       setLoading(false);
       navigate('/orders');
     }
   };
 
-  if (cartItems.length === 0) {
+  if ((cart || []).length === 0) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 bg-slate-50 text-center">
         <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4 shadow-inner">
           <ShoppingBag size={36} />
         </div>
         <h2 className="text-2xl font-bold text-slate-800">Your Cart is Empty</h2>
-        <p className="text-slate-500 mt-2 max-w-sm text-sm">Looks like you haven't added any premium tech gadgets yet.</p>
+        <p className="text-slate-500 mt-2 max-w-sm text-sm">Looks like you haven't added any tech products yet.</p>
         <Link
           to="/"
           className="mt-6 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg shadow-md transition"
@@ -82,57 +82,66 @@ export default function Cart() {
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-slate-800 mb-8 flex items-center gap-3">
-          Shopping Cart <span className="text-sm font-normal text-slate-500">({cartItems.length} items)</span>
+          Shopping Cart <span className="text-sm font-normal text-slate-500">({cart.length} items)</span>
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {cartItems.map((item) => (
-              <div
-                key={item._id || item.id}
-                className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center gap-4 shadow-sm"
-              >
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-20 h-20 object-cover rounded-lg bg-slate-100 flex-shrink-0"
-                />
+            {cart.map((item, idx) => {
+              const itemId = item._id || item.id || `item-${idx}`;
+              const itemPrice = typeof item.price === 'number'
+                ? item.price
+                : parseFloat(String(item.price || 0).replace(/[^0-9.-]+/g, '')) || 0;
 
-                <div className="flex-1 min-w-0 text-center sm:text-left">
-                  <h3 className="text-sm font-semibold text-slate-800 truncate">{item.name}</h3>
-                  <p className="text-base font-bold text-blue-600 mt-1">₹{Number(item.price).toLocaleString('en-IN')}</p>
-                </div>
-
-                {/* Quantity Controls */}
-                <div className="flex items-center gap-2 border border-slate-200 rounded-lg p-1 bg-slate-50">
-                  <button
-                    onClick={() => handleQuantity(item._id || item.id, -1, item.quantity)}
-                    className="p-1.5 hover:bg-white text-slate-600 rounded transition"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="w-8 text-center text-sm font-bold text-slate-800">{item.quantity || 1}</span>
-                  <button
-                    onClick={() => handleQuantity(item._id || item.id, 1, item.quantity)}
-                    className="p-1.5 hover:bg-white text-slate-600 rounded transition"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => removeFromCart(item._id || item.id)}
-                  className="text-red-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition"
-                  title="Remove item"
+              return (
+                <div
+                  key={itemId}
+                  className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center gap-4 shadow-sm"
                 >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
+                  <img
+                    src={item.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80'}
+                    alt={item.name || 'Product'}
+                    className="w-20 h-20 object-cover rounded-lg bg-slate-100 flex-shrink-0"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80';
+                    }}
+                  />
+
+                  <div className="flex-1 min-w-0 text-center sm:text-left">
+                    <h3 className="text-sm font-semibold text-slate-800 truncate">{item.name || 'Product'}</h3>
+                    <p className="text-base font-bold text-blue-600 mt-1">₹{itemPrice.toLocaleString('en-IN')}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 border border-slate-200 rounded-lg p-1 bg-slate-50">
+                    <button
+                      type="button"
+                      onClick={() => handleQuantity(itemId, -1, item.quantity)}
+                      className="p-1.5 hover:bg-white text-slate-600 rounded transition"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="w-8 text-center text-sm font-bold text-slate-800">{item.quantity || 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleQuantity(itemId, 1, item.quantity)}
+                      className="p-1.5 hover:bg-white text-slate-600 rounded transition"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => removeFromCart && removeFromCart(itemId)}
+                    className="text-red-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Order Summary */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit space-y-5">
             <h2 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3">Order Summary</h2>
 
@@ -156,6 +165,7 @@ export default function Cart() {
             </div>
 
             <button
+              type="button"
               onClick={handleCheckout}
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center justify-center gap-2"

@@ -7,20 +7,24 @@ export default function ProductDetailModal({ product, onClose }) {
 
   const { addToCart, addToWishlist } = useCart();
 
-  const price = Number(product.price) || 0;
-  const rating = Number(product.rating) || 4.8;
-  const reviews = Number(product.numReviews) || 120;
-  const stock = Number(product.stock) || 10;
+  const title = product.name || 'Tech Product';
+  const price = typeof product.price === 'number'
+    ? product.price
+    : parseFloat(String(product.price).replace(/[^0-9.-]+/g, '')) || 0;
+  const rating = product.rating || 4.8;
+  const reviews = product.numReviews || 120;
+  const stock = product.stock || 12;
+  const category = product.category || 'Electronics';
+  const description = product.description || 'Premium build quality with top-tier performance.';
+  const image = product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      {/* Overlay click to close */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="absolute inset-0" onClick={onClose} />
 
-      {/* Modal Card */}
       <div className="relative bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl z-10 max-h-[90vh] flex flex-col md:flex-row">
-        {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-3 right-3 z-20 bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-full transition shadow"
           aria-label="Close"
@@ -28,22 +32,20 @@ export default function ProductDetailModal({ product, onClose }) {
           <X size={18} />
         </button>
 
-        {/* Product Image */}
-        <div className="md:w-1/2 bg-slate-100 relative min-h-[260px] md:min-h-full flex items-center justify-center p-6">
+        <div className="md:w-1/2 bg-slate-100 relative min-h-[240px] md:min-h-full flex items-center justify-center p-6">
           <img
-            src={product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80'}
-            alt={product.name || 'Product'}
-            className="w-full h-64 md:h-full object-contain max-h-72 drop-shadow-md"
+            src={image}
+            alt={title}
+            className="w-full h-56 md:h-full object-contain max-h-72 drop-shadow-md"
             onError={(e) => {
               e.currentTarget.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80';
             }}
           />
           <span className="absolute top-4 left-4 bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
-            {product.category || 'Tech'}
+            {category}
           </span>
         </div>
 
-        {/* Product Details */}
         <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
           <div>
             <div className="flex items-center gap-1 text-amber-500 mb-2">
@@ -52,7 +54,7 @@ export default function ProductDetailModal({ product, onClose }) {
               <span className="text-xs text-slate-400">({reviews} reviews)</span>
             </div>
 
-            <h2 className="text-xl font-bold text-slate-900 leading-snug">{product.name}</h2>
+            <h2 className="text-xl font-bold text-slate-900 leading-snug">{title}</h2>
 
             <div className="mt-3 flex items-baseline gap-3">
               <span className="text-2xl font-extrabold text-blue-600">
@@ -63,9 +65,7 @@ export default function ProductDetailModal({ product, onClose }) {
               </span>
             </div>
 
-            <p className="mt-4 text-sm text-slate-600 leading-relaxed">
-              {product.description || 'Engineered with cutting-edge technology and premium materials for an elevated lifestyle experience.'}
-            </p>
+            <p className="mt-4 text-sm text-slate-600 leading-relaxed">{description}</p>
 
             <div className="mt-5 grid grid-cols-3 gap-2 border-y border-slate-100 py-3 text-center text-[11px] text-slate-500">
               <div className="flex flex-col items-center gap-1">
@@ -83,9 +83,9 @@ export default function ProductDetailModal({ product, onClose }) {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="mt-6 flex gap-3">
             <button
+              type="button"
               onClick={() => {
                 if (addToCart) addToCart(product);
                 onClose();
@@ -96,6 +96,7 @@ export default function ProductDetailModal({ product, onClose }) {
               Add to Cart
             </button>
             <button
+              type="button"
               onClick={() => {
                 if (addToWishlist) addToWishlist(product);
               }}

@@ -5,7 +5,7 @@ const CartContext = createContext();
 export function CartProvider({ children }) {
   const [cart, setCart] = useState(() => {
     try {
-      const saved = localStorage.getItem('devshop_cart');
+      const saved = localStorage.getItem('cart');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -14,7 +14,7 @@ export function CartProvider({ children }) {
 
   const [wishlist, setWishlist] = useState(() => {
     try {
-      const saved = localStorage.getItem('devshop_wishlist');
+      const saved = localStorage.getItem('wishlist');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -23,7 +23,7 @@ export function CartProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('devshop_cart', JSON.stringify(cart));
+      localStorage.setItem('cart', JSON.stringify(cart));
     } catch (e) {
       console.error(e);
     }
@@ -31,65 +31,68 @@ export function CartProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('devshop_wishlist', JSON.stringify(wishlist));
+      localStorage.setItem('wishlist', JSON.stringify(wishlist));
     } catch (e) {
       console.error(e);
     }
   }, [wishlist]);
 
   const addToCart = (product) => {
-    setCart((prevCart) => {
-      const existing = prevCart.find((item) => item.id === product.id);
+    if (!product) return;
+    const id = product._id || product.id || product.name;
+    setCart((prev) => {
+      const existing = prev.find((item) => (item._id || item.id) === id);
       if (existing) {
-        return prevCart.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: (Number(item.quantity) || 1) + 1 }
-            : item
+        return prev.map((item) =>
+          (item._id || item.id) === id ? { ...item, quantity: (item.quantity || 1) + 1 } : item
         );
       }
-      return [...prevCart, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity: 1 }];
     });
   };
 
   const removeFromCart = (id) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== id));
+    setCart((prev) => prev.filter((item) => (item._id || item.id) !== id));
   };
 
   const updateQuantity = (id, quantity) => {
-    const qty = Number(quantity);
-    if (isNaN(qty) || qty <= 0) {
+    if (quantity <= 0) {
       removeFromCart(id);
       return;
     }
-    setCart((prevCart) =>
-      prevCart.map((item) =>
-        item.id === id ? { ...item, quantity: qty } : item
+    setCart((prev) =>
+      prev.map((item) =>
+        (item._id || item.id) === id ? { ...item, quantity } : item
       )
     );
   };
 
   const clearCart = () => setCart([]);
 
-  const toggleWishlist = (product) => {
-    setWishlist((prevWishlist) => {
-      const exists = prevWishlist.some((item) => item.id === product.id);
+  const addToWishlist = (product) => {
+    if (!product) return;
+    const id = product._id || product.id || product.name;
+    setWishlist((prev) => {
+      const exists = prev.some((item) => (item._id || item.id) === id);
       if (exists) {
-        return prevWishlist.filter((item) => item.id !== product.id);
+        return prev.filter((item) => (item._id || item.id) !== id);
       }
-      return [...prevWishlist, product];
+      return [...prev, product];
     });
   };
 
   return (
     <CartContext.Provider
       value={{
-        cart,
+        cart: cart || [],
+        cartItems: cart || [],
+        wishlist: wishlist || [],
+        wishlistItems: wishlist || [],
         addToCart,
         removeFromCart,
         updateQuantity,
         clearCart,
-        wishlist,
-        toggleWishlist,
+        addToWishlist,
       }}
     >
       {children}
@@ -97,4 +100,20 @@ export function CartProvider({ children }) {
   );
 }
 
-export const useCart = () => useContext(CartContext);
+export function useCart() {
+  const context = useContext(CartContext);
+  if (!context) {
+    return {
+      cart: [],
+      cartItems: [],
+      wishlist: [],
+      wishlistItems: [],
+      addToCart: () => {},
+      removeFromCart: () => {},
+      updateQuantity: () => {},
+      clearCart: () => {},
+      addToWishlist: () => {},
+    };
+  }
+  return context;
+}
