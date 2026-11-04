@@ -102,14 +102,14 @@ export default function HeroBanner({ onSelectCategory }) {
           {/* CTA Button */}
           <button
             onClick={() => onSelectCategory && onSelectCategory(activeSlide.category)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-xl text-sm transition-all transform hover:scale-105 shadow-lg active:scale-95"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-xl text-sm transition-all transform hover:scale-105 shadow-lg active:scale-95 cursor-pointer"
           >
             {activeSlide.buttonText} <ArrowRight size={16} />
           </button>
         </div>
 
         {/* Side Floating Product Image */}
-        <div className="hidden lg:block absolute right-12 top-1/2 -translate-y-1/2 w-80 h-80 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 transform rotate-2 hover:rotate-0 transition-transform duration-500">
+        <div className="hidden lg:block absolute right-12 top-1/2 -translate-y-1/2 w-80 h-80 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 transform rotate-2 hover:rotate-0 transition-transform duration-500 pointer-events-none">
           <img
             src={activeSlide.image}
             alt={activeSlide.title}
@@ -117,30 +117,33 @@ export default function HeroBanner({ onSelectCategory }) {
           />
         </div>
 
-        {/* Left / Right Nav Arrows */}
+        {/* Left / Right Nav Arrows - Added z-30 and cursor-pointer for mobile touch */}
         <button
           onClick={prevSlide}
-          className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm transition border border-white/10"
+          className="absolute left-3 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md transition border border-white/20 z-30 cursor-pointer shadow-lg active:scale-90"
+          aria-label="Previous Slide"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={22} />
         </button>
 
         <button
           onClick={nextSlide}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm transition border border-white/10"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md transition border border-white/20 z-30 cursor-pointer shadow-lg active:scale-90"
+          aria-label="Next Slide"
         >
-          <ChevronRight size={20} />
+          <ChevronRight size={22} />
         </button>
 
-        {/* Bottom Carousel Dots */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+        {/* Bottom Carousel Dots - Added z-30 */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30">
           {slides.map((s, idx) => (
             <button
               key={s.id}
               onClick={() => setCurrent(idx)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                current === idx ? "w-8 bg-amber-400" : "w-2 bg-white/40 hover:bg-white/70"
+              className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                current === idx ? "w-8 bg-amber-400" : "w-2.5 bg-white/50 hover:bg-white/80"
               }`}
+              aria-label={`Go to slide ${idx + 1}`}
             />
           ))}
         </div>
