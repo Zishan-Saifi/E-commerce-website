@@ -1,119 +1,108 @@
-import { X, Star, Heart, ShoppingBag, ShieldCheck, Truck, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { X, Star, ShoppingBag, Heart, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 export default function ProductDetailModal({ product, onClose }) {
-  const { addToCart, toggleWishlist, wishlist } = useCart();
-
   if (!product) return null;
 
-  const isWishlisted = wishlist.some((item) => item.id === product.id);
+  const { addToCart, addToWishlist } = useCart();
+
+  const price = Number(product.price) || 0;
+  const rating = Number(product.rating) || 4.8;
+  const reviews = Number(product.numReviews) || 120;
+  const stock = Number(product.stock) || 10;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl border border-slate-200 relative max-h-[90vh] flex flex-col md:flex-row">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+      {/* Overlay click to close */}
+      <div className="absolute inset-0" onClick={onClose} />
+
+      {/* Modal Card */}
+      <div className="relative bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl z-10 max-h-[90vh] flex flex-col md:flex-row">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 hover:bg-slate-100 text-slate-700 transition-colors shadow-sm"
+          className="absolute top-3 right-3 z-20 bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-full transition shadow"
+          aria-label="Close"
         >
-          <X className="w-5 h-5" />
+          <X size={18} />
         </button>
 
         {/* Product Image */}
-        <div className="md:w-1/2 bg-slate-100 relative aspect-square md:aspect-auto">
+        <div className="md:w-1/2 bg-slate-100 relative min-h-[260px] md:min-h-full flex items-center justify-center p-6">
           <img
-            src={product.image}
-            alt={product.title}
-            className="w-full h-full object-cover"
+            src={product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80'}
+            alt={product.name || 'Product'}
+            className="w-full h-64 md:h-full object-contain max-h-72 drop-shadow-md"
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80';
+            }}
           />
-          {product.badge && (
-            <span className="absolute top-4 left-4 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              {product.badge}
-            </span>
-          )}
+          <span className="absolute top-4 left-4 bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+            {product.category || 'Tech'}
+          </span>
         </div>
 
-        {/* Details Content */}
-        <div className="md:w-1/2 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto">
+        {/* Product Details */}
+        <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
           <div>
-            <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
-              {product.category}
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-              {product.title}
-            </h2>
-
-            {/* Rating */}
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-4 h-4 ${
-                      i < Math.floor(product.rating)
-                        ? 'fill-current text-amber-400'
-                        : 'text-slate-300'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-xs font-bold text-slate-700">{product.rating}</span>
-              <span className="text-xs text-slate-400">({product.reviewsCount} customer reviews)</span>
+            <div className="flex items-center gap-1 text-amber-500 mb-2">
+              <Star size={16} fill="currentColor" />
+              <span className="text-sm font-bold text-slate-800 ml-1">{rating}</span>
+              <span className="text-xs text-slate-400">({reviews} reviews)</span>
             </div>
 
-            {/* Price */}
-            <div className="mt-4 pb-4 border-b border-slate-100">
-              <span className="text-3xl font-black text-slate-900">
-                ₹{product.price.toLocaleString()}
+            <h2 className="text-xl font-bold text-slate-900 leading-snug">{product.name}</h2>
+
+            <div className="mt-3 flex items-baseline gap-3">
+              <span className="text-2xl font-extrabold text-blue-600">
+                ₹{price.toLocaleString('en-IN')}
               </span>
-              <span className="text-xs text-emerald-600 font-bold ml-2">Inclusive of all taxes</span>
+              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                In Stock ({stock} units)
+              </span>
             </div>
 
-            {/* Features / Highlights */}
-            <p className="text-slate-600 text-xs sm:text-sm mt-4 leading-relaxed">
-              Designed with precision for modern lifestyle and professional workflows. Built using top-tier materials with an emphasis on durability, performance, and intuitive ergonomics.
+            <p className="mt-4 text-sm text-slate-600 leading-relaxed">
+              {product.description || 'Engineered with cutting-edge technology and premium materials for an elevated lifestyle experience.'}
             </p>
 
-            {/* Trust Badges */}
-            <div className="grid grid-cols-3 gap-2 mt-5 text-[11px] text-slate-600 text-center">
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                <Truck className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
-                <span>Fast Delivery</span>
+            <div className="mt-5 grid grid-cols-3 gap-2 border-y border-slate-100 py-3 text-center text-[11px] text-slate-500">
+              <div className="flex flex-col items-center gap-1">
+                <Truck size={16} className="text-blue-600" />
+                <span>Free Express</span>
               </div>
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                <RefreshCw className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
-                <span>7-Day Return</span>
+              <div className="flex flex-col items-center gap-1">
+                <ShieldCheck size={16} className="text-blue-600" />
+                <span>1 Year Warranty</span>
               </div>
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                <ShieldCheck className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
-                <span>1-Yr Warranty</span>
+              <div className="flex flex-col items-center gap-1">
+                <RotateCcw size={16} className="text-blue-600" />
+                <span>7 Days Return</span>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button
-              onClick={() => toggleWishlist(product)}
-              className={`p-3 rounded-xl border transition-colors flex items-center justify-center ${
-                isWishlisted
-                  ? 'bg-rose-50 border-rose-200 text-rose-500'
-                  : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-              title="Save to Wishlist"
-            >
-              <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
-            </button>
-
+          <div className="mt-6 flex gap-3">
             <button
               onClick={() => {
-                addToCart(product);
+                if (addToCart) addToCart(product);
                 onClose();
               }}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 text-sm transition-all active:scale-[0.98]"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center justify-center gap-2 text-sm"
             >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Add to Cart</span>
+              <ShoppingBag size={18} />
+              Add to Cart
+            </button>
+            <button
+              onClick={() => {
+                if (addToWishlist) addToWishlist(product);
+              }}
+              className="p-3 border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-red-500 rounded-xl transition"
+              title="Add to Wishlist"
+            >
+              <Heart size={20} />
             </button>
           </div>
         </div>
