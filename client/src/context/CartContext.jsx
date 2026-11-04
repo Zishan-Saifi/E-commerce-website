@@ -41,10 +41,12 @@ export function CartProvider({ children }) {
     if (!product) return;
     const id = product._id || product.id || product.name;
     setCart((prev) => {
-      const existing = prev.find((item) => (item._id || item.id) === id);
+      const existing = prev.find((item) => (item._id || item.id || item.name) === id);
       if (existing) {
         return prev.map((item) =>
-          (item._id || item.id) === id ? { ...item, quantity: (item.quantity || 1) + 1 } : item
+          (item._id || item.id || item.name) === id
+            ? { ...item, quantity: (item.quantity || 1) + 1 }
+            : item
         );
       }
       return [...prev, { ...product, quantity: 1 }];
@@ -52,7 +54,7 @@ export function CartProvider({ children }) {
   };
 
   const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((item) => (item._id || item.id) !== id));
+    setCart((prev) => prev.filter((item) => (item._id || item.id || item.name) !== id));
   };
 
   const updateQuantity = (id, quantity) => {
@@ -62,24 +64,32 @@ export function CartProvider({ children }) {
     }
     setCart((prev) =>
       prev.map((item) =>
-        (item._id || item.id) === id ? { ...item, quantity } : item
+        (item._id || item.id || item.name) === id ? { ...item, quantity } : item
       )
     );
   };
 
   const clearCart = () => setCart([]);
 
-  const addToWishlist = (product) => {
+  const toggleWishlist = (product) => {
     if (!product) return;
     const id = product._id || product.id || product.name;
     setWishlist((prev) => {
-      const exists = prev.some((item) => (item._id || item.id) === id);
+      const exists = prev.some((item) => (item._id || item.id || item.name) === id);
       if (exists) {
-        return prev.filter((item) => (item._id || item.id) !== id);
+        return prev.filter((item) => (item._id || item.id || item.name) !== id);
       }
       return [...prev, product];
     });
   };
+
+  const removeFromWishlist = (id) => {
+    setWishlist((prev) =>
+      prev.filter((item) => (item._id || item.id || item.name) !== id)
+    );
+  };
+
+  const clearWishlist = () => setWishlist([]);
 
   return (
     <CartContext.Provider
@@ -92,7 +102,10 @@ export function CartProvider({ children }) {
         removeFromCart,
         updateQuantity,
         clearCart,
-        addToWishlist,
+        addToWishlist: toggleWishlist,
+        toggleWishlist,
+        removeFromWishlist,
+        clearWishlist,
       }}
     >
       {children}
@@ -113,6 +126,9 @@ export function useCart() {
       updateQuantity: () => {},
       clearCart: () => {},
       addToWishlist: () => {},
+      toggleWishlist: () => {},
+      removeFromWishlist: () => {},
+      clearWishlist: () => {},
     };
   }
   return context;
